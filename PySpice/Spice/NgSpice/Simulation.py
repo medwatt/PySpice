@@ -24,6 +24,7 @@
 ####################################################################################################
 
 import logging
+# import time
 
 ####################################################################################################
 
@@ -108,15 +109,23 @@ class NgSpiceSharedCircuitSimulator(NgSpiceCircuitSimulator):
 
     ##############################################
 
-    def _run(self, analysis_method, *args, **kwargs):
+    def _run(self, analysis_method, *args, circuit_update=None, **kwargs,):
 
         super()._run(analysis_method, *args, **kwargs)
 
-        self._ngspice_shared.destroy()
-        # load circuit and simulation
-        # Fixme: Error: circuit not parsed.
-        self._ngspice_shared.load_circuit(str(self))
-        self._ngspice_shared.run()
+        # start_time = time.time()
+        if circuit_update is None:
+            self._ngspice_shared.destroy()
+            # load circuit and simulation
+            # Fixme: Error: circuit not parsed.
+            self._ngspice_shared.load_circuit(str(self))
+            self._ngspice_shared.run()
+        else:
+            self._ngspice_shared.load_circuit(circuit_update, reuse_circuit=True)
+            self._ngspice_shared.run()
+        # end_time = time.time()
+        # print("Elapsed time: ", end_time - start_time)
+
         self._logger.debug(str(self._ngspice_shared.plot_names))
         self.reset_analysis()
 
@@ -125,3 +134,4 @@ class NgSpiceSharedCircuitSimulator(NgSpiceCircuitSimulator):
             raise NameError('Simulation failed')
 
         return self._ngspice_shared.plot(self, plot_name).to_analysis()
+

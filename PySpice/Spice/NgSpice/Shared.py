@@ -590,7 +590,7 @@ class NgSpiceShared:
         except KeyError:
             # See SimulationType.py
             self._simulation_type = EnumFactory('SimulationType', SIMULATION_TYPE['last'])
-            self._logger.warning("Unsupported Ngspice version {}".format(self._ngspice_version))
+            # self._logger.warning("Unsupported Ngspice version {}".format(self._ngspice_version))
         self._type_to_unit = {
             self._simulation_type.time: u_s,
             self._simulation_type.voltage: u_V,
@@ -617,17 +617,18 @@ class NgSpiceShared:
         # split message in "<prefix><match = ' '><content>"
         prefix, _, content = message.partition(' ')
         if prefix == 'stderr':
-            self._stderr.append(content)
-            if content.startswith('Warning:'):
-                func = self._logger.warning
-            # elif content.startswith('Warning:'):
-            else:
-                self._error_in_stderr = True
-                func = self._logger.error
-                if content.strip() == "Note: can't find init file.":
-                    self._spinit_not_found = True
-                    self._logger.warning('spinit was not found')
-            func(content)
+            # self._stderr.append(content)
+            # if content.startswith('Warning:'):
+            #     func = self._logger.warning
+            # # elif content.startswith('Warning:'):
+            # else:
+            #     self._error_in_stderr = True
+            #     func = self._logger.error
+            #     if content.strip() == "Note: can't find init file.":
+            #         self._spinit_not_found = True
+            #         self._logger.warning('spinit was not found')
+            # func(content)
+            pass
         else:
             self._stdout.append(content)
             # Fixme: Ngspice writes error on stdout and stderr ...
@@ -1142,7 +1143,7 @@ class NgSpiceShared:
 
     ##############################################
 
-    def load_circuit(self, circuit):
+    def load_circuit(self, circuit, reuse_circuit=False):
 
         """Load the given circuit string."""
 
@@ -1155,10 +1156,19 @@ class NgSpiceShared:
 
         circuit_lines_keepalive = [ffi.new("char[]", line.encode('utf8'))
                                    for line in circuit_lines]
+
         circuit_lines_keepalive += [FFI.NULL]
         circuit_array = ffi.new("char *[]", circuit_lines_keepalive)
-        self.clear_output()
-        rc = self._ngspice_shared.ngSpice_Circ(circuit_array)
+
+        if not reuse_circuit:
+            self.clear_output()
+            rc = self._ngspice_shared.ngSpice_Circ(circuit_array)
+
+        else:
+            circuit_lines_keepalive = [ffi.new("char[]", line.encode('utf8'))
+                                       for line in circuit]
+            for alter_command in circuit_lines_keepalive:
+                rc = self._ngspice_shared.ngSpice_Command(alter_command)
 
         if rc:  # Fixme: when not 0 ???
             raise NameError("ngSpice_Circ returned {}".format(rc))
